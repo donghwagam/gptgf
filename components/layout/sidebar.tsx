@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -17,13 +16,66 @@ import {
   ChevronLeft,
   ChevronRight,
   Smartphone,
-  Share2
+  Share2,
+  UserPlus,
+  ImagePlus,
+  Grid3x3,
+  Eye,
+  UserCircle,
+  GamepadIcon,
+  Sword,
+  Shield,
+  Sparkles,
+  Book,
+  Cat,
+  Gamepad2,
+  Wand2,
+  Baby,
+  HeartHandshake,
+  Skull,
+  Bot,
+  Castle,
+  Zap,
+  Film,
+  ScrollText,
+  Mountain,
+  Ghost,
+  Glasses,
+  Rocket,
+  Tv,
+  BookOpen,
+  Search,
+  Brain,
+  Scroll,
+  Globe,
+  BabyIcon,
+  ShieldCheck,
+  HeartCrack,
+  Footprints,
+  Link2,
+  FlaskConical,
+  Star,
+  Box
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { DataRepository } from '@/lib/data';
 
-const navigationItems = [
+interface NavigationItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  iconColor?: string;
+}
+
+interface NavigationSection {
+  section: string;
+  title?: string;
+  items: NavigationItem[];
+}
+
+const navigationItems: NavigationSection[] = [
   {
     section: 'primary',
     items: [
@@ -45,19 +97,121 @@ const navigationItems = [
       { href: '/coins', label: '코인', icon: Coins },
       { href: '/membership', label: '멤버십', icon: Crown, badge: 'SALE' },
     ]
+  },
+  {
+    section: 'create',
+    title: '만들기',
+    items: [
+      { href: '/create/character', label: '캐릭터 생성', icon: UserPlus, badge: 'NEW' },
+      { href: '/create/image', label: '이미지 생성', icon: ImagePlus, badge: 'NEW' },
+    ]
+  },
+  {
+    section: 'explore',
+    title: '탐색',
+    items: [
+      { href: '/explore/categories', label: 'Categories', icon: Grid3x3, iconColor: 'text-blue-500' },
+      { href: '/explore/nsfw', label: 'NSFW', icon: Eye, iconColor: 'text-red-500' },
+      { href: '/explore/female', label: 'Female', icon: UserCircle, iconColor: 'text-pink-500' },
+      { href: '/explore/male', label: 'Male', icon: User, iconColor: 'text-blue-500' },
+      { href: '/explore/scenario', label: 'Scenario', icon: ScrollText, iconColor: 'text-green-500' },
+      { href: '/explore/dominant', label: 'Dominant', icon: Sword, iconColor: 'text-red-600' },
+      { href: '/explore/submissive', label: 'Submissive', icon: Shield, iconColor: 'text-purple-500' },
+      { href: '/explore/futa', label: 'Futa', icon: Users, iconColor: 'text-purple-600' },
+      { href: '/explore/fictional', label: 'Fictional', icon: Sparkles, iconColor: 'text-cyan-500' },
+      { href: '/explore/og', label: 'Original Character(OG)', icon: Star, iconColor: 'text-yellow-500' },
+      { href: '/explore/petite', label: 'Petite', icon: Baby, iconColor: 'text-pink-400' },
+      { href: '/explore/breeding', label: 'Breeding', icon: HeartHandshake, iconColor: 'text-red-400' },
+      { href: '/explore/femdom', label: 'Femdom', icon: Crown, iconColor: 'text-purple-600' },
+      { href: '/explore/milf', label: 'Milf', icon: UserCircle, iconColor: 'text-pink-600' },
+      { href: '/explore/straight', label: 'Straight', icon: Users },
+      { href: '/explore/cheating', label: 'Cheating', icon: HeartCrack, iconColor: 'text-red-600' },
+      { href: '/explore/bisexual', label: 'Bisexual', icon: Heart, iconColor: 'text-purple-500' },
+      { href: '/explore/rpg', label: 'RPG', icon: Gamepad2, iconColor: 'text-green-600' },
+      { href: '/explore/monster-girl', label: 'Monster Girl', icon: Ghost, iconColor: 'text-purple-400' },
+      { href: '/explore/bully', label: 'Bully', icon: Skull, iconColor: 'text-gray-600' },
+      { href: '/explore/non-human', label: 'Non-human', icon: Bot, iconColor: 'text-cyan-600' },
+      { href: '/explore/switch', label: 'Switch', icon: Zap, iconColor: 'text-yellow-600' },
+      { href: '/explore/anime', label: 'Anime', icon: Tv, iconColor: 'text-red-500' },
+      { href: '/explore/femboy', label: 'Femboy', icon: Sparkles, iconColor: 'text-pink-500' },
+      { href: '/explore/magical', label: 'Magical', icon: Wand2, iconColor: 'text-purple-500' },
+      { href: '/explore/bbw', label: 'BBW', icon: UserCircle },
+      { href: '/explore/monster', label: 'Monster', icon: Ghost, iconColor: 'text-green-600' },
+      { href: '/explore/tomboy', label: 'Tomboy', icon: Users, iconColor: 'text-blue-400' },
+      { href: '/explore/game', label: 'Game', icon: GamepadIcon, iconColor: 'text-green-500' },
+      { href: '/explore/hentai', label: 'Hentai', icon: Heart, iconColor: 'text-red-500' },
+      { href: '/explore/villain', label: 'Villain', icon: Skull, iconColor: 'text-red-700' },
+      { href: '/explore/chastity', label: 'Chastity', icon: ShieldCheck, iconColor: 'text-gray-500' },
+      { href: '/explore/hero', label: 'Hero', icon: Shield, iconColor: 'text-blue-600' },
+      { href: '/explore/elf', label: 'Elf', icon: Sparkles, iconColor: 'text-green-400' },
+      { href: '/explore/tsundere', label: 'Tsundere', icon: Heart, iconColor: 'text-red-400' },
+      { href: '/explore/yandere', label: 'Yandere', icon: HeartCrack, iconColor: 'text-red-700' },
+      { href: '/explore/kuudere', label: 'Kuudere', icon: Heart, iconColor: 'text-blue-400' },
+      { href: '/explore/royalty', label: 'Royalty', icon: Crown, iconColor: 'text-yellow-500' },
+      { href: '/explore/assistant', label: 'Assistant', icon: Bot, iconColor: 'text-blue-500' },
+      { href: '/explore/robot', label: 'Robot', icon: Bot, iconColor: 'text-gray-500' },
+      { href: '/explore/sissy', label: 'Sissy', icon: Users },
+      { href: '/explore/gay', label: 'Gay', icon: Heart, iconColor: 'text-rainbow' },
+      { href: '/explore/object', label: 'Object', icon: Box },
+      { href: '/explore/non-binary', label: 'Non-binary', icon: Users, iconColor: 'text-purple-400' },
+      { href: '/explore/deredere', label: 'Deredere', icon: Heart, iconColor: 'text-pink-400' },
+      { href: '/explore/feet', label: 'Feet', icon: Footprints, iconColor: 'text-brown-500' },
+      { href: '/explore/movie', label: 'Movie', icon: Film, iconColor: 'text-blue-600' },
+      { href: '/explore/muslim', label: 'Muslim', icon: Users },
+      { href: '/explore/arab', label: 'Arab', icon: Globe },
+      { href: '/explore/myth', label: 'Myth', icon: Mountain, iconColor: 'text-purple-700' },
+      { href: '/explore/religion', label: 'Religion', icon: BookOpen },
+      { href: '/explore/historical', label: 'Historical', icon: Scroll, iconColor: 'text-amber-600' },
+      { href: '/explore/giant', label: 'Giant', icon: Mountain, iconColor: 'text-gray-700' },
+      { href: '/explore/succubus', label: 'Succubus', icon: Ghost, iconColor: 'text-red-600' },
+      { href: '/explore/lesbian', label: 'Lesbian', icon: Heart, iconColor: 'text-pink-600' },
+      { href: '/explore/action', label: 'Action', icon: Zap, iconColor: 'text-orange-500' },
+      { href: '/explore/alien', label: 'Alien', icon: Rocket, iconColor: 'text-green-500' },
+      { href: '/explore/vtuber', label: 'VTuber', icon: Tv, iconColor: 'text-purple-500' },
+      { href: '/explore/dandere', label: 'Dandere', icon: Heart, iconColor: 'text-gray-400' },
+      { href: '/explore/non-english', label: 'Non-English', icon: Globe, iconColor: 'text-blue-500' },
+      { href: '/explore/fandom', label: 'Fandom', icon: Users, iconColor: 'text-purple-600' },
+      { href: '/explore/books', label: 'Books', icon: BookOpen, iconColor: 'text-brown-600' },
+      { href: '/explore/queer', label: 'Queer', icon: Heart, iconColor: 'text-rainbow' },
+      { href: '/explore/philosophy', label: 'Philosophy', icon: Brain, iconColor: 'text-gray-600' },
+      { href: '/explore/manga', label: 'Manga', icon: Book, iconColor: 'text-black' },
+      { href: '/explore/politics', label: 'Politics', icon: Globe },
+      { href: '/explore/asexual', label: 'Asexual', icon: Heart, iconColor: 'text-purple-300' },
+      { href: '/explore/folklore', label: 'Folklore', icon: ScrollText, iconColor: 'text-amber-700' },
+      { href: '/explore/dilf', label: 'Dilf', icon: User, iconColor: 'text-blue-700' },
+      { href: '/explore/detective', label: 'Detective', icon: Search, iconColor: 'text-gray-700' },
+      { href: '/explore/seinen', label: 'Seinen', icon: Book },
+      { href: '/explore/worship', label: 'Worship', icon: Crown, iconColor: 'text-yellow-600' },
+      { href: '/explore/maid', label: 'Maid', icon: Users, iconColor: 'text-black' },
+      { href: '/explore/realistic', label: 'Realistic', icon: Glasses, iconColor: 'text-gray-600' },
+      { href: '/explore/pregnant', label: 'Pregnant', icon: BabyIcon, iconColor: 'text-pink-300' },
+      { href: '/explore/ntr', label: 'NTR', icon: HeartCrack, iconColor: 'text-red-800' },
+      { href: '/explore/romantic', label: 'Romantic', icon: Heart, iconColor: 'text-red-400' },
+      { href: '/explore/wholesome', label: 'Wholesome', icon: HeartHandshake, iconColor: 'text-green-400' },
+      { href: '/explore/cnc', label: 'CNC', icon: Link2 },
+      { href: '/explore/shortstack', label: 'Shortstack', icon: Users },
+      { href: '/explore/hypno', label: 'Hypno', icon: Eye, iconColor: 'text-purple-700' },
+      { href: '/explore/voyeur', label: 'Voyeur', icon: Eye, iconColor: 'text-gray-600' },
+      { href: '/explore/demi-human', label: 'Demi human', icon: Users, iconColor: 'text-cyan-500' },
+      { href: '/explore/sci-fi', label: 'Sci-fi', icon: Rocket, iconColor: 'text-blue-700' },
+      { href: '/explore/bdsm', label: 'BDSM', icon: Link2, iconColor: 'text-black' },
+      { href: '/explore/bondage', label: 'Bondage', icon: Link2, iconColor: 'text-gray-800' },
+      { href: '/explore/horror', label: 'Horror', icon: Skull, iconColor: 'text-red-900' },
+      { href: '/explore/goth', label: 'Goth', icon: Skull, iconColor: 'text-black' },
+    ]
   }
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, setSidebarCollapsed, isLoggedIn } = useUIStore();
   const tags = DataRepository.getTags();
 
   return (
     <>
       {/* Sidebar */}
       <div className={cn(
-        "fixed left-0 top-0 h-full bg-[#151822] border-r border-[#23283A] transition-all duration-300 z-50",
+        "fixed left-0 top-0 h-screen bg-[#151822] border-r border-[#23283A] transition-all duration-300 z-50",
         sidebarCollapsed ? "w-20" : "w-80"
       )}>
         {/* Header */}
@@ -82,16 +236,22 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-6">
-          {navigationItems.map((section, sectionIndex) => (
-            <div key={section.section} className={cn("mb-8", sectionIndex > 0 && "px-6")}>
-              {section.title && !sidebarCollapsed && (
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                  {section.title}
-                </div>
-              )}
-              <nav className="space-y-2">
-                {section.items.map((item) => (
+        <div className="flex-1 overflow-y-auto py-4 px-2 scrollbar-thin scrollbar-thumb-[#23283A] scrollbar-track-transparent max-h-[calc(100vh-140px)]">
+          {navigationItems.map((section, sectionIndex) => {
+            // Hide 'you' section if not logged in
+            if (section.section === 'you' && !isLoggedIn) {
+              return null;
+            }
+            
+            return (
+              <div key={section.section} className={cn("mb-8", sectionIndex > 0 && "px-6")}>
+                {section.title && !sidebarCollapsed && (
+                  <div className="text-base font-bold text-gray-300 mb-4">
+                    {section.title}
+                  </div>
+                )}
+                <nav className="space-y-2">
+                  {section.items.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -103,7 +263,7 @@ export function Sidebar() {
                       sidebarCollapsed && "justify-center"
                     )}
                   >
-                    <item.icon className={cn("w-5 h-5", !sidebarCollapsed && "mr-3")} />
+                    <item.icon className={cn("w-5 h-5", item.iconColor || "text-gray-400", !sidebarCollapsed && "mr-3")} />
                     {!sidebarCollapsed && (
                       <>
                         <span className="font-medium">{item.label}</span>
@@ -115,35 +275,12 @@ export function Sidebar() {
                       </>
                     )}
                   </Link>
-                ))}
-              </nav>
-            </div>
-          ))}
+                  ))}
+                </nav>
+              </div>
+            );
+          })}
 
-          {/* Categories */}
-          {!sidebarCollapsed && (
-            <div className="px-6">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                카테고리
-              </div>
-              <div className="space-y-1 max-h-96 overflow-y-auto">
-                {tags.map((tag) => (
-                  <Link
-                    key={tag.id}
-                    href={`/tag/${tag.slug}`}
-                    className={cn(
-                      "block px-4 py-2 rounded-xl text-sm transition-all duration-200",
-                      pathname === `/tag/${tag.slug}`
-                        ? "bg-[#6C5CE7] text-white"
-                        : "text-gray-400 hover:text-white hover:bg-[#23283A]"
-                    )}
-                  >
-                    {tag.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer CTAs */}
