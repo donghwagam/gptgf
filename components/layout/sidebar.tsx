@@ -102,7 +102,7 @@ const navigationItems: NavigationSection[] = [
     section: 'create',
     title: '만들기',
     items: [
-      { href: '/create/character', label: '캐릭터 생성', icon: UserPlus, badge: 'NEW' },
+      { href: '/create', label: '캐릭터 생성', icon: UserPlus, badge: 'NEW' },
       { href: '/create/image', label: '이미지 생성', icon: ImagePlus, badge: 'NEW' },
     ]
   },
