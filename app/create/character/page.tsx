@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,15 +9,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ImageIcon, Volume2 } from 'lucide-react';
+import { ImageIcon, Volume2, Upload, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuthContext } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function CreateCharacterPage() {
+  const router = useRouter();
+  const { user } = useAuthContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [characterName, setCharacterName] = useState('');
   const [age, setAge] = useState('');
   const [language, setLanguage] = useState('Korean');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [showTagSelector, setShowTagSelector] = useState(false);
+  const tagSelectorRef = useRef<HTMLDivElement>(null);
   const [description, setDescription] = useState('');
   const [personality, setPersonality] = useState('');
   const [scenario, setScenario] = useState('');
@@ -24,6 +33,11 @@ export default function CreateCharacterPage() {
   const [visibility, setVisibility] = useState('Private');
   const [selectedVoice, setSelectedVoice] = useState('');
   const [agreedToGuidelines, setAgreedToGuidelines] = useState(false);
+  
+  // 새로 추가된 상태
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const maleVoices = Array.from({ length: 10 }, (_, i) => ({
     id: `male-${i + 1}`,
@@ -48,9 +62,152 @@ export default function CreateCharacterPage() {
     setTags(tags.filter((_, i) => i !== index));
   };
 
-  const calculateTokens = () => {
-    const totalText = description + personality + scenario + firstMessage;
-    return Math.floor(totalText.length / 4);
+  const handleToggleTag = (tagName: string) => {
+    if (tags.includes(tagName)) {
+      setTags(tags.filter(tag => tag !== tagName));
+    } else {
+      if (tags.length < 10) {
+        setTags([...tags, tagName]);
+      }
+    }
+  };
+
+  const handleRemoveSelectedTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  // 외부 클릭 감지하여 태그 선택기 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
+        setShowTagSelector(false);
+      }
+    };
+
+    if (showTagSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showTagSelector]);
+
+  // 개별 토큰 계산 함수들
+  const calculateTokens = (text: string) => {
+    if (!text) return 0;
+    // 한국어와 영어 혼합 텍스트를 고려한 토큰 계산
+    // 한글은 보통 1글자당 1.5-2토큰, 영어는 4글자당 1토큰 정도
+    const koreanChars = (text.match(/[ㄱ-ㅎㅏ-ㅣ가-힣]/g) || []).length;
+    const otherChars = text.length - koreanChars;
+    return Math.ceil(koreanChars * 1.5 + otherChars / 4);
+  };
+
+  const getTotalTokens = () => {
+    return calculateTokens(description) + calculateTokens(personality) + calculateTokens(scenario) + calculateTokens(firstMessage);
+  };
+
+  // 이미지 업로드 함수
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload/avatar', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAvatarUrl(result.url);
+      } else {
+        alert(result.error || '이미지 업로드에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 캐릭터 생성 함수
+  const handleCreate = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    if (!characterName || !age || !agreedToGuidelines) {
+      alert('필수 항목을 모두 입력해주세요.');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const characterData = {
+        name: characterName,
+        age: parseInt(age),
+        avatar_url: avatarUrl,
+        description,
+        personality,
+        scenario,
+        firstMessage,
+        tags,
+        nsfw: false, // 기본값
+        language
+      };
+
+      const response = await fetch('/api/characters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(characterData)
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert('캐릭터가 성공적으로 생성되었습니다!');
+        router.push(`/character/${result.character.slug}`);
+      } else {
+        alert(result.error || '캐릭터 생성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Create error:', error);
+      alert('캐릭터 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // 폼 리셋 함수
+  const handleReset = () => {
+    setCharacterName('');
+    setAge('');
+    setTags([]);
+    setTagInput('');
+    setDescription('');
+    setPersonality('');
+    setScenario('');
+    setFirstMessage('');
+    setAvatarUrl('');
+    setSelectedVoice('');
+    setAgreedToGuidelines(false);
   };
 
   return (
@@ -81,21 +238,47 @@ export default function CreateCharacterPage() {
             <div>
               <h3 className="text-lg font-semibold mb-4 text-white">Character Image</h3>
               <div className="flex items-start gap-8">
-                <div className="w-48 h-48 bg-zinc-900 rounded-lg border-2 border-zinc-800 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-20 h-20 mx-auto mb-2 text-zinc-600">
-                      <ImageIcon className="w-full h-full" />
+                <div className="w-48 h-48 bg-zinc-900 rounded-lg border-2 border-zinc-800 flex items-center justify-center overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Character Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-20 h-20 mx-auto mb-2 text-zinc-600">
+                        <ImageIcon className="w-full h-full" />
+                      </div>
+                      <span className="text-4xl text-zinc-600">?</span>
                     </div>
-                    <span className="text-4xl text-zinc-600">?</span>
-                  </div>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <Button variant="secondary" className="mb-3 bg-zinc-800 hover:bg-zinc-700 text-white">
-                    Generate Image
-                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <div className="flex gap-2 mb-3">
+                    <Button 
+                      variant="secondary" 
+                      className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4 mr-2" />
+                      )}
+                      {isUploading ? 'Uploading...' : 'Upload Image'}
+                    </Button>
+                    <Button variant="secondary" className="mb-3 bg-zinc-800 hover:bg-zinc-700 text-white">
+                      Generate Image
+                    </Button>
+                  </div>
                   <p className="text-sm text-zinc-400">
-                    Generate an image that represents your character. Make sure these images comply to{' '}
-                    <Link href="#" className="text-blue-500 hover:underline">
+                    Upload or generate an image that represents your character. Make sure these images comply to{' '}
+                    <Link href="/legal" className="text-blue-500 hover:underline">
                       our terms and community guidelines
                     </Link>
                     .
@@ -143,38 +326,348 @@ export default function CreateCharacterPage() {
 
             {/* Character Tags */}
             <div>
-              <Label htmlFor="tags" className="text-base mb-2 block text-white">
+              <Label className="text-base mb-2 block text-white">
                 Character Tags
               </Label>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  id="tags"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  placeholder="Add tag"
-                  className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-                <Button onClick={handleAddTag} variant="secondary" size="icon" className="bg-zinc-800 hover:bg-zinc-700">
-                  +
+              
+              {/* Selected Tags Display */}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {tags.map((tag, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-white text-sm h-8"
+                      style={{ backgroundColor: '#6366f1', borderRadius: '6px' }}
+                    >
+                      {tag}
+                      <button
+                        onClick={() => handleRemoveSelectedTag(tag)}
+                        className="ml-1 text-white hover:text-gray-200"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mb-4">
+                <Button 
+                  variant="secondary" 
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white text-sm h-8 px-3 py-1"
+                  onClick={() => setShowTagSelector(!showTagSelector)}
+                >
+                  Add tag +
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-zinc-800 rounded-full text-sm flex items-center gap-2"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => handleRemoveTag(index)}
-                      className="text-zinc-500 hover:text-white"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
+
+              {/* Show tag selector when button is clicked */}
+              {showTagSelector && (
+                <div ref={tagSelectorRef} className="mb-4">
+                  <h4 className="text-white mb-2">Tags</h4>
+                  <div className="bg-zinc-900 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    {/* default */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">default</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { name: '🔥 NSFW', icon: '🔥' },
+                          { name: '👹 Monster Girl', icon: '👹' },
+                          { name: '🌍 Worlds-End-Challenge', icon: '🌍' }
+                        ].map((tag) => (
+                          <button
+                            key={tag.name}
+                            onClick={() => handleToggleTag(tag.name)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag.name)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag.icon} {tag.name.replace(/^[🔥👹🌍]\s*/, '')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Character Type */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Character Type</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Female',
+                          'Male', 
+                          'Non-human',
+                          'Non-binary',
+                          'Object',
+                          'Myth',
+                          'Queer'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Genre */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Genre</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Scenario', 'RPG', 'Fictional', 'Romantic', 'Magical', 'Anime', 'Hentai', 'Wholesome',
+                          'Action', 'Historical', 'Sci-fi', 'Horror', 'Seinen', 'Fandom', 'Philosophy', 'Politics',
+                          'Non-English', 'Detective', 'Manga'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Origin */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Origin</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Original Character(OG)', 'Game', 'Movie', 'Books', 'VTuber', 'Folklore'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Goal */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Goal</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Erotic Roleplay', 'Breeding', 'Femdom'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Personality */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Personality</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Submissive', 'Dominant', 'Milf', 'Bully', 'Switch', 'Femboy', 'Tomboy', 'Villain',
+                          'Hero', 'Tsundere', 'Yandere', 'Kuudere', 'Assistant', 'Sissy', 'Deredere', 'Dandere',
+                          'Dilf'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Physical Traits */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Physical Traits</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Petite', 'Futa', 'BBW', 'Monster', 'Monster Girl', 'Elf', 'Robot', 'Giant', 
+                          'Alien', 'Succubus', 'Maid', 'Realistic', 'Pregnant', 'Shortstack', 'Demi human'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Fantasy */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Fantasy</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Cheating', 'NTR', 'Chastity', 'Hypno', 'BDSM', 'Voyeur', 'Bondage', 'CNC'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sexuality */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Sexuality</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Straight', 'Bisexual', 'Gay', 'Lesbian', 'Asexual'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Kink */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Kink</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Worship', 'Feet'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Ethnicity */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Ethnicity</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Arab'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Religion */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Religion</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Muslim', 'Religion'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Other */}
+                    <div className="mb-6">
+                      <h5 className="text-white font-medium mb-3">Other</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Royalty'
+                        ].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleTag(tag)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              tags.includes(tag)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm text-zinc-500">
                 Assign tags that describes your character. You can add maximum 10 tags.
               </p>
@@ -183,7 +676,7 @@ export default function CreateCharacterPage() {
             {/* Description */}
             <div>
               <Label htmlFor="description" className="text-base mb-2 block text-white">
-                Description ({calculateTokens()} tokens)
+                Description ({calculateTokens(description)} tokens)
               </Label>
               <Textarea
                 id="description"
@@ -200,7 +693,7 @@ export default function CreateCharacterPage() {
             {/* Personality */}
             <div>
               <Label htmlFor="personality" className="text-base mb-2 block text-white">
-                Personality (0 tokens)
+                Personality ({calculateTokens(personality)} tokens)
               </Label>
               <Textarea
                 id="personality"
@@ -217,7 +710,7 @@ export default function CreateCharacterPage() {
             {/* Scenario */}
             <div>
               <Label htmlFor="scenario" className="text-base mb-2 block text-white">
-                Scenario (0 tokens)
+                Scenario ({calculateTokens(scenario)} tokens)
               </Label>
               <Textarea
                 id="scenario"
@@ -231,7 +724,7 @@ export default function CreateCharacterPage() {
             {/* First Message */}
             <div>
               <Label htmlFor="first-message" className="text-base mb-2 block text-white">
-                First Message (0 tokens)
+                First Message ({calculateTokens(firstMessage)} tokens)
               </Label>
               <Textarea
                 id="first-message"
@@ -261,13 +754,16 @@ export default function CreateCharacterPage() {
                 Visibility
               </Label>
               <Select value={visibility} onValueChange={setVisibility}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
-                  <SelectValue />
+                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800">
+                  <SelectValue placeholder="Select visibility" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800">
-                  <SelectItem value="Private">Private</SelectItem>
-                  <SelectItem value="Public">Public</SelectItem>
-                  <SelectItem value="Unlisted">Unlisted</SelectItem>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                  <SelectItem value="Public" className="text-white hover:bg-zinc-800 focus:bg-zinc-800">
+                    Public
+                  </SelectItem>
+                  <SelectItem value="Private" className="text-white hover:bg-zinc-800 focus:bg-zinc-800">
+                    Private
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-zinc-500 mt-1">
@@ -342,7 +838,7 @@ export default function CreateCharacterPage() {
               />
               <Label htmlFor="guidelines" className="text-base cursor-pointer text-white">
                 I have read and agree with the{' '}
-                <Link href="#" className="text-blue-500 hover:underline">
+                <Link href="/legal/guidelines" target="_blank" className="text-blue-500 hover:underline">
                   Community Guidelines
                 </Link>
                 .
@@ -352,20 +848,33 @@ export default function CreateCharacterPage() {
             {/* Footer Actions */}
             <div className="flex items-center justify-between pt-8 border-t border-zinc-800">
               <div className="flex items-center gap-2">
-                <span className="text-blue-500">Token</span>
+                <span className="text-blue-500">Total Tokens</span>
                 <span className="text-2xl font-bold text-white">
-                  {calculateTokens()} / 2500
+                  {getTotalTokens()} / 2500
                 </span>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800">
+                <Button 
+                  variant="outline" 
+                  className="border-zinc-700 text-white hover:bg-zinc-800"
+                  onClick={handleReset}
+                  disabled={isCreating}
+                >
                   Reset
                 </Button>
                 <Button
                   className="bg-purple-600 hover:bg-purple-700 text-white"
-                  disabled={!agreedToGuidelines || !characterName}
+                  disabled={!agreedToGuidelines || !characterName || !age || isCreating}
+                  onClick={handleCreate}
                 >
-                  Create
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create'
+                  )}
                 </Button>
               </div>
             </div>

@@ -17,9 +17,6 @@ interface UIState {
   setIsLoggedIn: (loggedIn: boolean) => void;
 }
 
-// Development: user@example.com is always logged in
-const isDevelopment = process.env.NODE_ENV === 'development';
-
 export const useUIStore = create<UIState>((set) => ({
   sidebarCollapsed: false,
   showNsfw: false,
@@ -27,7 +24,7 @@ export const useUIStore = create<UIState>((set) => ({
   showOnboarding: true,
   showNotificationPrompt: true,
   showPwaInstall: true,
-  isLoggedIn: isDevelopment ? true : false, // Always logged in as user@example.com in development
+  isLoggedIn: false, // Will be set by AuthContext based on actual auth state
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   setShowNsfw: (show) => set({ showNsfw: show }),
   setLanguage: (lang) => set({ language: lang }),

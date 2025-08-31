@@ -186,11 +186,23 @@ export default function CharacterDetailPage({ params }: { params: { id: string }
 }
 
 function MediaGalleryTab() {
+  const router = useRouter()
+  
+  const handleGeneratePictures = () => {
+    // Get character ID from the URL
+    const pathSegments = window.location.pathname.split('/')
+    const characterId = pathSegments[pathSegments.length - 1]
+    router.push(`/create/image?character=${characterId}`)
+  }
+  
   return (
     <div className="flex flex-col items-center justify-center py-20">
       <p className="text-2xl font-semibold mb-2">No images yet.</p>
       <p className="text-gray-400 mb-6">Click on Generate Pictures button to start generating pictures.</p>
-      <Button className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-full flex items-center gap-2">
+      <Button 
+        onClick={handleGeneratePictures}
+        className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-full flex items-center gap-2"
+      >
         Generate Pictures ✨
       </Button>
     </div>
@@ -198,10 +210,29 @@ function MediaGalleryTab() {
 }
 
 function RecentChatsTab({ characterId }: { characterId: string }) {
-  const [hasChats, setHasChats] = useState(false)
   const router = useRouter()
+  
+  // Mock chat data - in production, this would come from database
+  const [chats, setChats] = useState([
+    {
+      id: '1',
+      characterName: 'Sophia Joo',
+      lastMessage: "Hi 👋 my name is Sophia I go by Sophie, what's your name...? 😊",
+      messageCount: 1,
+      date: 'Aug 31, 2025',
+      avatar: '/placeholder.jpg'
+    },
+    {
+      id: '2',
+      characterName: 'Sophia Joo',
+      lastMessage: "That's a lovely name! Tell me more about yourself 💕",
+      messageCount: 3,
+      date: 'Aug 30, 2025',
+      avatar: '/placeholder.jpg'
+    }
+  ])
 
-  if (!hasChats) {
+  if (!chats || chats.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <p className="text-2xl font-semibold mb-2">No chats yet.</p>
@@ -212,39 +243,58 @@ function RecentChatsTab({ characterId }: { characterId: string }) {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">Your Recent Chats with Sophia Joo(1)</h2>
-      <div className="bg-gray-900 rounded-lg p-4 hover:bg-gray-800 transition-colors cursor-pointer">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-            <Image src="/placeholder.jpg" alt="Sophia Joo" width={48} height={48} className="object-cover" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="font-semibold">Sophia Joo</h3>
-              <button className="p-1 hover:bg-gray-700 rounded">
-                <MoreVertical className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-gray-400 text-sm mb-3">
-              "Hi 👋 my name is Sophia I go by Sophie, what's your name...? 😊"
-            </p>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                1
-              </span>
-              <span>Aug 31, 2025</span>
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button 
-            onClick={() => router.push(`/chat/${characterId}`)}
-            className="bg-transparent hover:bg-gray-700 text-white px-4 py-1 rounded-full text-sm border border-gray-600"
+      <h2 className="text-xl font-semibold mb-6">Your Recent Chats with Sophia Joo({chats.length})</h2>
+      <div className="grid gap-4">
+        {chats.map((chat) => (
+          <div 
+            key={chat.id}
+            className="bg-gray-900 rounded-xl overflow-hidden hover:bg-gray-800 transition-colors cursor-pointer"
+            onClick={() => router.push(`/chat/${characterId}?chatId=${chat.id}`)}
           >
-            Open Chat →
-          </Button>
-        </div>
+            <div className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                  <Image src={chat.avatar} alt={chat.characterName} width={48} height={48} className="object-cover" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold">{chat.characterName}</h3>
+                    <button 
+                      className="p-1 hover:bg-gray-700 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Handle more options (delete, archive, etc.)
+                      }}
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-3">
+                    "{chat.lastMessage}"
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3" />
+                      {chat.messageCount}
+                    </span>
+                    <span>{chat.date}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/chat/${characterId}?chatId=${chat.id}`)
+                  }}
+                  className="bg-transparent hover:bg-gray-700 text-white px-4 py-1 rounded-full text-sm border border-gray-600"
+                >
+                  Open Chat →
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Info, Sparkles, Zap, Settings2, Save, RotateCcw, X } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface StyleOption {
   id: string;
@@ -27,6 +28,8 @@ interface ModelOption {
 
 export default function CreateImagePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const characterId = searchParams.get('character');
   
   const [prompt, setPrompt] = useState('');
@@ -37,6 +40,17 @@ export default function CreateImagePage() {
   const [selectedStyle, setSelectedStyle] = useState('anime');
   const [selectedModel, setSelectedModel] = useState('ai-anime-art');
   const [numberOfImages, setNumberOfImages] = useState(1);
+  
+  // 코인 계산 함수
+  const calculateCoins = (imageCount: number) => {
+    switch (imageCount) {
+      case 1: return 6;
+      case 2: return 12;
+      case 4: return 24;
+      case 8: return 48;
+      default: return 6;
+    }
+  };
   const [creativity, setCreativity] = useState(0.5);
   const [activeView, setActiveView] = useState<'intro' | 'generator' | 'features'>('generator');
   const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
@@ -53,15 +67,15 @@ export default function CreateImagePage() {
   }, [characterId]);
 
   const styles: StyleOption[] = [
-    { id: 'anime', name: 'Anime', image: '/placeholder-anime.jpg', isNew: true },
-    { id: 'realistic-pro', name: 'Realistic Pro', image: '/placeholder-realistic.jpg', isNew: true },
-    { id: 'animemix', name: 'AnimeMix', image: '/placeholder-animemix.jpg', isNew: true },
-    { id: 'anime2d', name: 'Anime2D', image: '/placeholder-anime2d.jpg', isNew: true },
-    { id: 'comic', name: 'Comic', image: '/placeholder-comic.jpg' },
-    { id: 'realistic-lite', name: 'Realistic Lite', image: '/placeholder-realistic-lite.jpg' },
-    { id: 'painting', name: 'Painting', image: '/placeholder-painting.jpg' },
-    { id: 'cartoon', name: 'Cartoon', image: '/placeholder-cartoon.jpg' },
-    { id: '3d-cartoon', name: '3D Cartoon', image: '/placeholder-3d-cartoon.jpg' },
+    { id: 'anime', name: 'Anime', image: '/placeholder-anime.png', isNew: true },
+    { id: 'realistic-pro', name: 'Realistic Pro', image: '/placeholder-realistic.png', isNew: true },
+    { id: 'animemix', name: 'AnimeMix', image: '/placeholder-animemix.png', isNew: true },
+    { id: 'anime2d', name: 'Anime2D', image: '/placeholder-anime2d.png', isNew: true },
+    { id: 'comic', name: 'Comic', image: '/placeholder-comic.png' },
+    { id: 'realistic-lite', name: 'Realistic Lite', image: '/placeholder-realistic-lite.png' },
+    { id: 'painting', name: 'Painting', image: '/placeholder-painting.png' },
+    { id: 'cartoon', name: 'Cartoon', image: '/placeholder-cartoon.png' },
+    { id: '3d-cartoon', name: '3D Cartoon', image: '/placeholder-3d-cartoon.png' },
   ];
 
   const models: ModelOption[] = [
@@ -72,6 +86,80 @@ export default function CreateImagePage() {
     { id: 'ai-boobs', name: 'AI Boobs Generator', images: ['/model13.jpg', '/model14.jpg', '/model15.jpg'] },
     { id: 'ai-nudes', name: 'AI Nudes Generator', images: ['/model16.jpg', '/model17.jpg', '/model18.jpg'] },
   ];
+
+  // 키워드별 이미지 매핑
+  const keywordImages = {
+    'anime': [
+      { src: '/placeholder-anime-1.png', alt: 'Cute anime girl with colorful hair' },
+      { src: '/placeholder-anime-2.png', alt: 'Anime character in school uniform' },
+      { src: '/placeholder-anime-3.png', alt: 'Magical anime girl with sparkles' }
+    ],
+    'anime-hot': [
+      { src: '/placeholder-hot-1.png', alt: 'Sexy anime girl in bikini' },
+      { src: '/placeholder-hot-2.png', alt: 'Hot anime character in lingerie' },
+      { src: '/placeholder-hot-3.png', alt: 'Seductive anime girl pose' }
+    ],
+    'realistic': [
+      { src: '/placeholder-realistic-1.png', alt: 'Realistic beautiful woman portrait' },
+      { src: '/placeholder-realistic-2.png', alt: 'Photorealistic female model' },
+      { src: '/placeholder-realistic-3.png', alt: 'Realistic woman in elegant dress' }
+    ],
+    'hentai': [
+      { src: '/placeholder-hentai-1.png', alt: 'Adult anime art style 1' },
+      { src: '/placeholder-hentai-2.png', alt: 'Adult anime art style 2' },
+      { src: '/placeholder-hentai-3.png', alt: 'Adult anime art style 3' }
+    ],
+    'ai-boobs': [
+      { src: '/placeholder-boobs-1.png', alt: 'AI generated feminine figure 1' },
+      { src: '/placeholder-boobs-2.png', alt: 'AI generated feminine figure 2' },
+      { src: '/placeholder-boobs-3.png', alt: 'AI generated feminine figure 3' }
+    ],
+    'ai-nude-generator': [
+      { src: '/placeholder-nude-1.png', alt: 'Artistic nude AI generation 1' },
+      { src: '/placeholder-nude-2.png', alt: 'Artistic nude AI generation 2' },
+      { src: '/placeholder-nude-3.png', alt: 'Artistic nude AI generation 3' }
+    ]
+  };
+
+  const keywordLabels = {
+    'anime': 'AI Anime Art',
+    'anime-hot': 'Hot AI Anime Art', 
+    'realistic': 'Realistic AI Art',
+    'hentai': 'AI Hentai Art',
+    'ai-boobs': 'AI Boobs Generator',
+    'ai-nude-generator': 'AI Nudes Generator'
+  };
+
+  // URL에서 keyword 파라미터 확인
+  const currentKeyword = searchParams.get('keyword') as keyof typeof keywordImages;
+  const hasValidKeyword = currentKeyword && keywordImages[currentKeyword];
+
+  // 이미지 Preloading
+  useEffect(() => {
+    // 현재 키워드 이미지들 preload
+    const imagesToPreload = hasValidKeyword 
+      ? keywordImages[currentKeyword] 
+      : keywordImages['anime'];
+    
+    imagesToPreload.forEach((image) => {
+      const img = new window.Image();
+      img.src = image.src;
+    });
+
+    // 다른 키워드 이미지들도 백그라운드에서 preload
+    const otherKeywords = Object.keys(keywordImages).filter(key => 
+      key !== (hasValidKeyword ? currentKeyword : 'anime')
+    );
+    
+    setTimeout(() => {
+      otherKeywords.forEach(keyword => {
+        keywordImages[keyword as keyof typeof keywordImages].forEach((image) => {
+          const img = new window.Image();
+          img.src = image.src;
+        });
+      });
+    }, 1000); // 1초 후에 다른 이미지들 preload
+  }, [currentKeyword, hasValidKeyword]);
 
   if (activeView === 'intro') {
     return (
@@ -199,8 +287,9 @@ export default function CreateImagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <div className="flex h-screen">
+    <TooltipProvider>
+      <div className="min-h-screen bg-zinc-950 text-white">
+        <div className="flex h-screen">
         {/* Left Sidebar */}
         <div className="w-96 bg-zinc-900 border-r border-zinc-800 flex flex-col">
           {/* Back Button */}
@@ -282,7 +371,7 @@ export default function CreateImagePage() {
                 <Textarea
                   value={negativePrompt}
                   onChange={(e) => setNegativePrompt(e.target.value)}
-                  placeholder="What you don't want to see..."
+                  placeholder="Describe what you do not want to see in your image"
                   className="bg-zinc-800 border-zinc-700 text-white min-h-[80px] placeholder:text-zinc-500"
                 />
               )}
@@ -293,9 +382,19 @@ export default function CreateImagePage() {
               <div className="flex items-center justify-between">
                 <Label className="text-white flex items-center gap-2">
                   Auto-Enhance
-                  <button className="text-zinc-500 hover:text-zinc-300">
-                    <Info className="w-4 h-4" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-zinc-500 hover:text-zinc-300">
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs bg-[#3f3f47] border-[#3f3f47] text-white">
+                      <div className="space-y-2">
+                        <div className="font-semibold">Automatic Prompt Refinement</div>
+                        <div className="text-sm">This, when enabled, will improve your prompt with the help of AI in the background</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <Switch
                   checked={autoEnhance}
@@ -307,9 +406,19 @@ export default function CreateImagePage() {
               <div className="flex items-center justify-between">
                 <Label className="text-white flex items-center gap-2">
                   Safe Mode
-                  <button className="text-zinc-500 hover:text-zinc-300">
-                    <Info className="w-4 h-4" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-zinc-500 hover:text-zinc-300">
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs bg-[#3f3f47] border-[#3f3f47] text-white">
+                      <div className="space-y-2">
+                        <div className="font-semibold">Keeping Content Appropriate and Safe</div>
+                        <div className="text-sm">Safe Mode, when enabled, will ensure that you won't get any unsafe/inappropriate content in your image</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <Switch
                   checked={safeMode}
@@ -339,7 +448,15 @@ export default function CreateImagePage() {
                         New
                       </span>
                     )}
-                    <div className="aspect-square bg-zinc-700 rounded mb-1" />
+                    <div className="aspect-square bg-zinc-700 rounded mb-1 overflow-hidden">
+                      <Image
+                        src={style.image}
+                        alt={style.name}
+                        width={100}
+                        height={100}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <span className="text-xs text-zinc-300">{style.name}</span>
                   </button>
                 ))}
@@ -413,7 +530,7 @@ export default function CreateImagePage() {
               <Zap className="w-4 h-4 mr-2" />
               Generate Image
               <span className="ml-2 px-2 py-0.5 bg-orange-500 rounded text-xs">
-                12 🔥
+                {calculateCoins(numberOfImages)} 🔥
               </span>
             </Button>
           </div>
@@ -423,29 +540,113 @@ export default function CreateImagePage() {
         <div className="flex-1 bg-zinc-950 overflow-y-auto">
           {/* Header */}
           <div className="p-8 text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              {selectedCharacter 
-                ? 'Welcome to Your Canvas!'
-                : 'Spark Imagination with AI Image Generator'}
-            </h1>
-            {selectedCharacter && (
-              <p className="text-zinc-400 mb-2">
-                Describe your character in the Prompt box or,<br />
-                try the 'Inspire Me' 🎲 button for inspiration.
-              </p>
-            )}
-            {!selectedCharacter && (
-              <button
-                onClick={() => setActiveView('features')}
-                className="text-purple-500 hover:text-purple-400 text-sm"
-              >
-                Learn about features →
-              </button>
-            )}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  {selectedCharacter 
+                    ? 'Welcome to Your Canvas!'
+                    : 'Spark Imagination with AI Image Generator'}
+                </h1>
+                {selectedCharacter && (
+                  <p className="text-zinc-400 mb-2">
+                    Describe your character in the Prompt box or,<br />
+                    try the 'Inspire Me' 🎲 button for inspiration.
+                  </p>
+                )}
+                {!selectedCharacter && !hasValidKeyword && (
+                  <button
+                    onClick={() => setActiveView('features')}
+                    className="text-purple-500 hover:text-purple-400 text-sm"
+                  >
+                    Learn about features →
+                  </button>
+                )}
+              </div>
+              {hasValidKeyword && (
+                <Link href="/create/image" className="text-zinc-400 hover:text-white text-2xl">
+                  <X className="w-6 h-6" />
+                </Link>
+              )}
+            </div>
           </div>
 
-          {/* Model Selection or Character Canvas */}
-          {selectedCharacter ? (
+          {/* Keyword Images Display - Show for both keyword view and default view */}
+          {!selectedCharacter && (
+            <div className="px-8 pb-8">
+              <div className="grid grid-cols-3 gap-10 max-w-4xl mx-auto mb-8">
+                {(hasValidKeyword ? keywordImages[currentKeyword] : keywordImages['anime']).map((image, index) => (
+                  <div 
+                    key={index} 
+                    className={`
+                      aspect-[3/4] bg-zinc-800 rounded-lg overflow-hidden group cursor-pointer relative transition-all duration-300
+                      ${index === 1 ? 'scale-110 z-10 hover:scale-[1.10]' : 'hover:scale-105'}
+                    `}
+                  >
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      className="object-cover"
+                      priority={index < 3}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
+                    />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+                  </div>
+                ))}
+              </div>
+              
+              {/* Model Selection Buttons */}
+              <div className="grid grid-cols-6 gap-4">
+                {models.map((model) => {
+                  let keyword = 'anime';
+                  if (model.id.includes('hot')) keyword = 'anime-hot';
+                  else if (model.id.includes('realistic')) keyword = 'realistic'; 
+                  else if (model.id.includes('hentai')) keyword = 'hentai';
+                  else if (model.id.includes('boobs')) keyword = 'ai-boobs';
+                  else if (model.id.includes('nudes')) keyword = 'ai-nude-generator';
+                  
+                  const handleKeywordChange = () => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('keyword', keyword);
+                    router.push(`${pathname}?${params.toString()}`);
+                  };
+
+                  return (
+                    <button
+                      key={model.id}
+                      onClick={handleKeywordChange}
+                      className={cn(
+                        "group relative rounded-lg overflow-hidden border-2 transition-all w-full",
+                        (hasValidKeyword && currentKeyword === keyword) || (!hasValidKeyword && keyword === 'anime')
+                          ? "border-purple-600"
+                          : "border-zinc-800 hover:border-zinc-700"
+                      )}
+                    >
+                      <div className="grid grid-cols-3 gap-0.5 p-2 bg-zinc-900">
+                        {keywordImages[keyword as keyof typeof keywordImages].map((img, i) => (
+                          <div key={i} className="aspect-[3/4] bg-zinc-800 rounded overflow-hidden relative">
+                            <Image
+                              src={img.src}
+                              alt={img.alt}
+                              fill
+                              className="object-cover"
+                              sizes="50px"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-2 bg-zinc-900">
+                        <p className="text-sm text-white text-center">{model.name}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Character Canvas */}
+          {selectedCharacter && (
             <div className="px-8 pb-8 flex justify-center">
               <div className="text-center">
                 <div className="text-6xl mb-4">✨</div>
@@ -457,38 +658,12 @@ export default function CreateImagePage() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="px-8 pb-8">
-              <div className="grid grid-cols-6 gap-4">
-                {models.map((model) => (
-                  <button
-                    key={model.id}
-                    onClick={() => setSelectedModel(model.id)}
-                    className={cn(
-                      "group relative rounded-lg overflow-hidden border-2 transition-all",
-                      selectedModel === model.id
-                        ? "border-purple-600"
-                        : "border-zinc-800 hover:border-zinc-700"
-                    )}
-                  >
-                    <div className="grid grid-cols-2 gap-0.5 p-2 bg-zinc-900">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="aspect-square bg-zinc-800 rounded" />
-                      ))}
-                    </div>
-                    <div className="p-2 bg-zinc-900">
-                      <p className="text-sm text-white text-center">{model.name}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
           )}
 
           {/* Get Started Steps */}
           <div className="px-8 pb-8">
             <div className="bg-zinc-900 rounded-2xl p-8">
-              <h2 className="text-2xl font-bold text-white mb-6 text-center">
+              <h2 className="text-3xl font-bold text-white mb-6 text-center">
                 Get Started in 4 Easy Steps
               </h2>
               <div className="space-y-4 max-w-2xl mx-auto">
@@ -535,20 +710,36 @@ export default function CreateImagePage() {
 
           {/* Sample Gallery */}
           <div className="px-8 pb-8">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Discover the Power of Creativity and Explore your Imagination without Boundaries
+            <h3 className="text-3xl font-bold text-white mb-4 text-center">
+              Discover the Power of Creativity and<br />
+              Explore your Imagination without Boundaries
             </h3>
-            <div className="grid grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="relative group">
-                  <div className="aspect-square bg-zinc-800 rounded-lg overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 opacity-20" />
+            <div className="flex justify-center">
+              <div className="w-full max-w-6xl">
+                <div className="flex">
+                  {/* 좌측 공백 */}
+                  <div className="flex-1"></div>
+                  
+                  {/* 중간 컨텐츠 */}
+                  <div className="w-5/6">
+                    <div className="grid grid-cols-4 gap-5">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <div key={i} className="relative group">
+                          <div className="aspect-[4/5] bg-zinc-800 rounded-lg overflow-hidden">
+                            <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 opacity-20" />
+                          </div>
+                          <button className="absolute bottom-2 right-2 px-3 py-1 bg-black/50 backdrop-blur rounded text-sm text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                            Try this prompt
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <button className="absolute bottom-2 right-2 px-3 py-1 bg-black/50 backdrop-blur rounded text-sm text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    Try this prompt
-                  </button>
+                  
+                  {/* 우측 공백 */}
+                  <div className="flex-1"></div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
@@ -563,5 +754,6 @@ export default function CreateImagePage() {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

@@ -3,13 +3,10 @@
       "supabase": {
         "command": "npx",
         "args": [
-          "-y",
-          "@supabase/mcp-server-supabase"
-        ],
-        "env": {
-          "SUPABASE_ACCESS_TOKEN": "sbp_d2205664736d73dff2dadd72ca1786a3e9c9dba1",
-          "SUPABASE_PROJECT_REF": "kkvmvbticthutsenvyoe"
-        }
+          "@supabase/mcp-server-supabase",
+          "--access-token",
+          "sbp_d12b475544d4be907a4fc25c30ade2c267c6fe4f"
+        ]
       }
     }
   }

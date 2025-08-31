@@ -1,13 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, Bell, ChevronDown } from 'lucide-react';
+import { Search, Plus, Bell, ChevronDown, User } from 'lucide-react';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { useAuthContext } from '@/context/AuthContext';
+import { AuthModal } from '@/components/auth/auth-modal';
 
 export function Topbar() {
-  const { showNsfw, setShowNsfw, language, setLanguage } = useUIStore();
+  const { showNsfw, setShowNsfw, language, setLanguage, isLoggedIn } = useUIStore();
+  const { user, signOut } = useAuthContext();
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setShowUserMenu(false);
+  };
 
   return (
     <div className="fixed top-0 right-0 left-0 h-16 bg-[#151822]/95 backdrop-blur-sm border-b border-[#23283A] z-40">
@@ -86,41 +95,65 @@ export function Topbar() {
             </span>
           </button>
 
-          {/* User Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-3 p-2 bg-[#23283A] hover:bg-[#2A2F45] rounded-2xl transition-all duration-200"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-[#6C5CE7] to-[#8A63F1] rounded-xl"></div>
-              <div className="text-left">
-                <div className="text-sm font-medium text-white">User</div>
-                <div className="text-xs text-[#8A63F1] font-bold">FREE</div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-[#151822] border border-[#23283A] rounded-2xl shadow-[0_6px_30px_rgba(0,0,0,.35)] overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#23283A]">
-                  <div className="text-white font-medium">User</div>
-                  <div className="text-sm text-gray-400">user@example.com</div>
+          {/* User Menu or Login Button */}
+          {isLoggedIn && user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-3 p-2 bg-[#23283A] hover:bg-[#2A2F45] rounded-2xl transition-all duration-200"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-[#6C5CE7] to-[#8A63F1] rounded-xl flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
                 </div>
-                <a href="/profile" className="block px-4 py-3 text-white hover:bg-[#23283A] transition-colors">
-                  프로필
-                </a>
-                <a href="/settings" className="block px-4 py-3 text-white hover:bg-[#23283A] transition-colors">
-                  설정
-                </a>
-                <hr className="border-[#23283A]" />
-                <button className="block w-full text-left px-4 py-3 text-[#EF4444] hover:bg-[#23283A] transition-colors">
-                  로그아웃
-                </button>
-              </div>
-            )}
-          </div>
+                <div className="text-left">
+                  <div className="text-sm font-medium text-white">
+                    {user.email?.split('@')[0] || '사용자'}
+                  </div>
+                  <div className="text-xs text-[#8A63F1] font-bold">FREE</div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-[#151822] border border-[#23283A] rounded-2xl shadow-[0_6px_30px_rgba(0,0,0,.35)] overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#23283A]">
+                    <div className="text-white font-medium">
+                      {user.email?.split('@')[0] || '사용자'}
+                    </div>
+                    <div className="text-sm text-gray-400">{user.email}</div>
+                  </div>
+                  <a href="/profile" className="block px-4 py-3 text-white hover:bg-[#23283A] transition-colors">
+                    프로필
+                  </a>
+                  <a href="/settings" className="block px-4 py-3 text-white hover:bg-[#23283A] transition-colors">
+                    설정
+                  </a>
+                  <hr className="border-[#23283A]" />
+                  <button 
+                    onClick={handleSignOut}
+                    className="block w-full text-left px-4 py-3 text-[#EF4444] hover:bg-[#23283A] transition-colors"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-4 py-2 bg-[#6C5CE7] hover:bg-[#8A63F1] text-white rounded-2xl font-medium transition-all duration-200"
+            >
+              로그인
+            </button>
+          )}
         </div>
       </div>
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        open={showAuthModal}
+        onOpenChange={setShowAuthModal}
+      />
     </div>
   );
 }
