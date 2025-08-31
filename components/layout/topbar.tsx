@@ -40,14 +40,14 @@ export function Topbar() {
             {showCreateDropdown && (
               <div className="absolute top-full right-0 mt-2 w-56 bg-[#151822] border border-[#23283A] rounded-2xl shadow-[0_6px_30px_rgba(0,0,0,.35)] overflow-hidden">
                 <a
-                  href="/create"
+                  href="/create/character"
                   className="block px-4 py-3 text-white hover:bg-[#23283A] transition-colors"
                   onClick={() => setShowCreateDropdown(false)}
                 >
                   새 캐릭터 만들기
                 </a>
                 <a
-                  href="/create-image"
+                  href="/create/image"
                   className="block px-4 py-3 text-white hover:bg-[#23283A] transition-colors"
                   onClick={() => setShowCreateDropdown(false)}
                 >

@@ -102,7 +102,7 @@ const navigationItems: NavigationSection[] = [
     section: 'create',
     title: '만들기',
     items: [
-      { href: '/create', label: '캐릭터 생성', icon: UserPlus, badge: 'NEW' },
+      { href: '/create/character', label: '캐릭터 생성', icon: UserPlus, badge: 'NEW' },
       { href: '/create/image', label: '이미지 생성', icon: ImagePlus, badge: 'NEW' },
     ]
   },
@@ -110,7 +110,7 @@ const navigationItems: NavigationSection[] = [
     section: 'explore',
     title: '탐색',
     items: [
-      { href: '/explore/categories', label: 'Categories', icon: Grid3x3, iconColor: 'text-blue-500' },
+      { href: '/categories', label: 'Categories', icon: Grid3x3, iconColor: 'text-blue-500' },
       { href: '/explore/nsfw', label: 'NSFW', icon: Eye, iconColor: 'text-red-500' },
       { href: '/explore/female', label: 'Female', icon: UserCircle, iconColor: 'text-pink-500' },
       { href: '/explore/male', label: 'Male', icon: User, iconColor: 'text-blue-500' },

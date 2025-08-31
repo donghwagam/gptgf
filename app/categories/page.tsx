@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Layout } from '@/components/layout/layout';
 import Link from 'next/link';
-import Image from 'next/image';
 import { 
   Grid3x3,
   Eye,
@@ -104,73 +104,75 @@ export default function CategoriesPage() {
   const [activeTab, setActiveTab] = useState('Character Type');
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-white">
-      {/* Header */}
-      <div className="px-8 py-12">
-        <h1 className="text-4xl font-bold mb-4">Find Your Perfect AI Companion</h1>
-        <p className="text-gray-400 text-lg">
-          Browse our extensive collection of AI personalities, backgrounds, and traits to
-          discover a companion that fits your unique preferences.
-        </p>
-      </div>
-
-      {/* Jump to category tabs */}
-      <div className="px-8 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Jump to category</h2>
-        <div className="flex flex-wrap gap-3">
-          {categoryTabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                activeTab === tab
-                  ? 'bg-[#6C5CE7] text-white'
-                  : 'bg-[#1A1F2E] text-gray-400 hover:bg-[#23283A] hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+    <Layout>
+      <div className="p-8">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold mb-4 text-white">Find Your Perfect AI Companion</h1>
+          <p className="text-gray-400 text-lg">
+            Browse our extensive collection of AI personalities, backgrounds, and traits to
+            discover a companion that fits your unique preferences.
+          </p>
         </div>
-      </div>
 
-      {/* Category Section */}
-      <div className="px-8 pb-12">
-        <h2 className="text-2xl font-bold mb-6 text-[#6C5CE7]">{activeTab}</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories[activeTab]?.map((category) => (
-            <Link
-              key={category.id}
-              href={`/explore/${category.id}`}
-              className="bg-[#1A1F2E] rounded-2xl p-6 hover:bg-[#23283A] transition-colors group"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-xl ${category.iconBg}`}>
-                    <category.icon className="w-8 h-8 text-white" />
+        {/* Jump to category tabs */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 text-white">Jump to category</h2>
+          <div className="flex flex-wrap gap-3">
+            {categoryTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'bg-[#6C5CE7] text-white'
+                    : 'bg-[#1A1F2E] text-gray-400 hover:bg-[#23283A] hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Category Section */}
+        <div className="pb-12">
+          <h2 className="text-2xl font-bold mb-6 text-[#6C5CE7]">{activeTab}</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categories[activeTab]?.map((category) => (
+              <Link
+                key={category.id}
+                href={`/tag/${category.id}`}
+                className="bg-[#1A1F2E] rounded-2xl p-6 hover:bg-[#23283A] transition-colors group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-xl ${category.iconBg}`}>
+                      <category.icon className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">{category.name}</h3>
                   </div>
-                  <h3 className="text-xl font-bold">{category.name}</h3>
+                  <span className="text-sm text-gray-400 bg-[#0A0E1A] px-3 py-1 rounded-full">
+                    {category.count}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-400 bg-[#0A0E1A] px-3 py-1 rounded-full">
-                  {category.count}
-                </span>
-              </div>
-              
-              <div className="flex space-x-2">
-                {category.characters.map((char, idx) => (
-                  <div
-                    key={idx}
-                    className="w-12 h-12 rounded-lg bg-gray-700 overflow-hidden"
-                  >
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600" />
-                  </div>
-                ))}
-              </div>
-            </Link>
-          ))}
+                
+                <div className="flex space-x-2">
+                  {category.characters.map((char, idx) => (
+                    <div
+                      key={idx}
+                      className="w-12 h-12 rounded-lg bg-gray-700 overflow-hidden"
+                    >
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600" />
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }
