@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, MoreHorizontal, RefreshCw, Send, Mic, Paperclip, Smile, Info, Settings, ChevronDown, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Layout } from '@/components/layout/layout'
 
 export default function ChatPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
@@ -13,9 +14,10 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex">
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+    <Layout>
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex">
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col">
         {/* Chat Header */}
         <div className="border-b border-gray-800 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -169,8 +171,9 @@ export default function ChatPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   )
 }
 

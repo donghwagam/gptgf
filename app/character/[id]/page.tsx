@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, MessageCircle, Image as ImageIcon, Clock, Star, Brain, Heart, Share2, MoreVertical, ChevronDown, Plus, Edit3, Send, Mic, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Layout } from '@/components/layout/layout'
 
 interface TabContent {
   id: string
@@ -35,9 +36,10 @@ export default function CharacterDetailPage({ params }: { params: { id: string }
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800">
+    <Layout>
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
+        {/* Header */}
+        <div className="border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button 
             onClick={() => router.back()}
@@ -178,7 +180,8 @@ export default function CharacterDetailPage({ params }: { params: { id: string }
         {activeTab === 'ai-generator' && <AIGeneratorTab characterId={params.id} />}
         {activeTab === 'memories' && <MemoriesTab />}
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }
 
